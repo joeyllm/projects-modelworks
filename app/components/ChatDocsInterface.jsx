@@ -73,50 +73,6 @@ const ChatWithDocs = ({
     [normalizeMessagesForApi, patients, currentScreen]
   );
 
-  const suggestions = {
-    general: [
-      "Show me patients with the best tumor response",
-      "Which biomarkers predict better outcomes?",
-      "Summarize safety events this month",
-      "Compare QoL scores by cancer stage",
-    ],
-    "patient-matching": [
-      "Find patients with EGFR+ and Stage II",
-      "Which locations have the most enrollments?",
-      "Show eligibility violations by criteria",
-      "Compare enrollment by biomarker status",
-    ],
-    biomarkers: [
-      "What's the PD-L1 expression distribution?",
-      "Correlate EGFR status with response",
-      "Show ALK fusion prevalence by cancer type",
-      "Which biomarkers have the strongest association?",
-    ],
-    "tumor-metrics": [
-      "Which patients show progression?",
-      "Average tumor shrinkage by stage",
-      "Identify complete responders",
-      "Compare target vs overall response",
-    ],
-    "outcomes-safety": [
-      "List all severe adverse events",
-      "QoL improvement by treatment duration",
-      "Secondary infection patterns",
-      "Protocol deviation impact analysis",
-    ],
-  };
-
-  const mockResponses = [
-    "Based on the current data, I've identified several key patterns in your patient cohort...",
-    "Looking at the biomarker data, there's a strong correlation between EGFR mutation status and treatment response...",
-    "The safety profile shows excellent tolerability with only 3 severe adverse events across 25 enrolled patients...",
-    "Quality of life scores have improved by an average of 12.3 points from baseline, with 78% of patients showing improvement...",
-    "I found 4 patients meeting your criteria. Here's a detailed breakdown of their characteristics...",
-    "The compliance rate is excellent at 94.2%. The two protocol deviations were minor and didn't impact safety...",
-    "Comparing by cancer stage, Stage II patients show the best response rates...",
-    "The most common biomarker combination is EGFR+ with ALK- ...",
-  ];
-
   React.useEffect(() => {
     if (isOpen && messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
@@ -144,28 +100,46 @@ const ChatWithDocs = ({
     setInputMessage("");
     setIsTyping(true);
 
-    sendHistoryToBackend(nextMessages).catch(() => {});
+    try {
+      // 直接把消息历史发给 API
+      const response = await fetch(CHAT_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          messages: nextMessages.map((m) => ({
+            role: m.type === "user" ? "user" : m.type === "assistant" ? "assistant" : "system",
+            content: m.content,
+          })),
+        }),
+      });
 
-    setTimeout(() => {
-      const responseMessage = {
+      const data = await response.json();
+
+      const aiMessage = {
         id: Date.now() + 1,
         type: "assistant",
-        content: mockResponses[Math.floor(Math.random() * mockResponses.length)],
+        content: data.choices?.[0]?.message?.content || "⚠️ No response",
         timestamp: new Date(),
-        attachments:
-          Math.random() > 0.7
-            ? [
-                { type: "chart", name: "Patient Response Analysis.png" },
-                { type: "table", name: "Filtered Results.csv" },
-              ]
-            : undefined,
       };
-      setMessages((prev) => [...prev, responseMessage]);
+
+      setMessages((prev) => [...prev, aiMessage]);
+    } catch (err) {
+      console.error("Chat error:", err);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now() + 1,
+          type: "assistant",
+          content: "⚠️ Error: Failed to reach AI service",
+          timestamp: new Date(),
+        },
+      ]);
+    } finally {
       setIsTyping(false);
-    }, 1200 + Math.random() * 800);
+    }
   };
 
-  const handleSuggestionClick = (suggestion) => setInputMessage(suggestion);
 
   const handleKeyPress = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -381,26 +355,6 @@ const ChatWithDocs = ({
 
             <div className="flex-1 overflow-y-auto p-4 min-h-0">
               <div className="space-y-6">
-                <div>
-                  <div className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-3">
-                    {currentScreen.replace("-", " ").toUpperCase()} CONTEXT
-                  </div>
-
-                  <div className="space-y-2">
-                    {(suggestions[currentScreen] || suggestions.general).map(
-                      (suggestion, index) => (
-                        <button
-                          key={index}
-                          onClick={() => handleSuggestionClick(suggestion)}
-                          className="w-full text-left p-3 bg-gray-700/50 hover:bg-gray-600/80 rounded-lg text-white text-sm transition-all duration-200 border border-transparent hover:border-cyan-500/50 cursor-pointer"
-                        >
-                          {suggestion}
-                        </button>
-                      )
-                    )}
-                  </div>
-                </div>
-
                 <div className="border-t border-gray-600/50 pt-4">
                   <h5 className="text-white font-medium mb-3 text-sm">Patient Summary</h5>
                   <div className="space-y-2 text-xs">
