@@ -153,31 +153,62 @@ const ClinicalTrialDemoMain = () => {
     { id: 'Safety & Compliance', icon: Shield, color: 'amber' }
   ];
 
-  const handleChatSend = () => {
+  const handleChatSend = async () => {
     if (!chatInput.trim()) return;
     
     const userMessage = { type: 'user', message: chatInput };
     setChatMessages(prev => [...prev, userMessage]);
+    const currentInput = chatInput;
     setChatInput('');
     setIsTyping(true);
 
-    // Mock AI response - replace with actual RAG API call
-    setTimeout(() => {
-      const mockResponses = [
-        "Based on the current data, we have 15 patients enrolled across 8 sites. The response rate is showing positive trends.",
-        "I found 3 patients with similar biomarker profiles. Would you like me to display their detailed comparison?",
-        "The safety profile shows 12 patients with adverse events, but only 3 are classified as severe.",
-        "Quality of life scores have improved by an average of 8.5 points from baseline across enrolled patients."
-      ];
-      
-      const response = {
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          // Remove the Authorization header - handled server-side now
+        },
+        body: JSON.stringify({
+          model: 'gpt-4',
+          messages: [
+            {
+              role: 'system',
+              content: `You are a clinical research assistant...`
+            },
+            {
+              role: 'user',
+              content: currentInput
+            }
+          ],
+          max_tokens: 300,
+          temperature: 0.7,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const aiResponse = {
         type: 'assistant',
-        message: mockResponses[Math.floor(Math.random() * mockResponses.length)]
+        message: data.choices[0].message.content
       };
       
-      setChatMessages(prev => [...prev, response]);
+      setChatMessages(prev => [...prev, aiResponse]);
+    } catch (error) {
+      console.error('Chat Error:', error);
+      
+      const errorResponse = {
+        type: 'assistant',
+        message: 'Sorry, I encountered an error. Please try again.'
+      };
+      
+      setChatMessages(prev => [...prev, errorResponse]);
+    } finally {
       setIsTyping(false);
-    }, 1500);
+    }
   };
 
   const PatientMatchingScreen = () => (
@@ -615,6 +646,10 @@ const ClinicalTrialDemoMain = () => {
   };
 
   return (
+    
+    <html>
+    <body>
+      
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
       {/* Header */}
       <header className="bg-gray-800/80 backdrop-blur-md border-b border-cyan-500/50 sticky top-0 z-40">
@@ -874,6 +909,8 @@ const ClinicalTrialDemoMain = () => {
         </div>
       )}
     </div>
+    </body>
+    </html>
   );
 };
 
