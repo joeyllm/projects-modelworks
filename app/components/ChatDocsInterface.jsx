@@ -101,7 +101,6 @@ const ChatWithDocs = ({
     setIsTyping(true);
 
     try {
-      // 直接把消息历史发给 API
       const response = await fetch(CHAT_ENDPOINT, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
