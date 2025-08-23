@@ -1,6 +1,13 @@
 "use client";
 import dynamic from "next/dynamic";
 import React, { useState, useEffect } from 'react';
+
+/**
+ * @todo Replace with actual source of json data
+ * @todo Have consistent URL for exported json file and json file for code
+ */
+import patientData from './api/data/fake_clinical_trial_patients.json';
+
 import { 
   BarChart3, 
   Activity, 
@@ -22,109 +29,11 @@ import {
 } from 'lucide-react';
 
 // Mock patient data - in real implementation, this would be imported from JSON
-const mockPatients = [
-  {
-    id: 'P001',
-    age: 32,
-    sex: 'Male',
-    cancerType: 'Melanoma',
-    cancerStage: 'II',
-    egfrMutation: 'Positive',
-    pdl1Expression: 71,
-    alkFusion: 'Positive',
-    location: 'Perth, WA',
-    enrollmentStatus: 'Enrolled',
-    tumorSizeChange: 19,
-    bestResponse: 'CR',
-    qolBaseline: 78,
-    qolCurrent: 86,
-    adverseEventsCount: 4,
-    severeAeFlag: 'No',
-    secondaryInfection: 'No',
-    protocolDeviations: 'None'
-  },
-  {
-    id: 'P002',
-    age: 41,
-    sex: 'Male',
-    cancerType: 'Lymphoma',
-    cancerStage: 'I',
-    egfrMutation: 'Positive',
-    pdl1Expression: 2,
-    alkFusion: 'Negative',
-    location: 'Sydney, NSW',
-    enrollmentStatus: 'Screened',
-    tumorSizeChange: -50,
-    bestResponse: 'PR',
-    qolBaseline: 60,
-    qolCurrent: 78,
-    adverseEventsCount: 5,
-    severeAeFlag: 'No',
-    secondaryInfection: 'Yes - Sepsis',
-    protocolDeviations: 'Eligibility Violation'
-  },
-  // Add more mock data as needed...
-  {
-    id: 'P003',
-    age: 47,
-    sex: 'Female',
-    cancerType: 'Non-Small Cell Lung Cancer',
-    cancerStage: 'I',
-    egfrMutation: 'Negative',
-    pdl1Expression: 37,
-    alkFusion: 'Positive',
-    location: 'Melbourne, VIC',
-    enrollmentStatus: 'Screened',
-    tumorSizeChange: -45,
-    bestResponse: 'PD',
-    qolBaseline: 92,
-    qolCurrent: 73,
-    adverseEventsCount: 1,
-    severeAeFlag: 'Yes',
-    secondaryInfection: 'Yes - Pneumonia',
-    protocolDeviations: 'None'
-  },
-  {
-    id: 'P004',
-    age: 65,
-    sex: 'Male',
-    cancerType: 'Lymphoma',
-    cancerStage: 'III',
-    egfrMutation: 'Positive',
-    pdl1Expression: 21,
-    alkFusion: 'Positive',
-    location: 'Canberra, ACT',
-    enrollmentStatus: 'Excluded',
-    tumorSizeChange: -13,
-    bestResponse: 'CR',
-    qolBaseline: 60,
-    qolCurrent: 72,
-    adverseEventsCount: 4,
-    severeAeFlag: 'Yes',
-    secondaryInfection: 'No',
-    protocolDeviations: 'Eligibility Violation'
-  },
-  {
-    id: 'P005',
-    age: 66,
-    sex: 'Other',
-    cancerType: 'Melanoma',
-    cancerStage: 'II',
-    egfrMutation: 'Negative',
-    pdl1Expression: 90,
-    alkFusion: 'Negative',
-    location: 'Sydney, NSW',
-    enrollmentStatus: 'Excluded',
-    tumorSizeChange: 37,
-    bestResponse: 'CR',
-    qolBaseline: 83,
-    qolCurrent: 87,
-    adverseEventsCount: 2,
-    severeAeFlag: 'Yes',
-    secondaryInfection: 'Yes - COVID-19',
-    protocolDeviations: 'None'
-  }
-];
+
+/**
+ * @todo Replace with actual source of json data
+ */
+const mockPatients = Object.keys(patientData).map(key => patientData[key]);
 
 const ClinicalTrialDemoMain = () => {
   const [activeTab, setActiveTab] = useState('Patient Matching');
@@ -152,6 +61,29 @@ const ClinicalTrialDemoMain = () => {
     { id: 'Patient Outcomes', icon: Heart, color: 'green' },
     { id: 'Safety & Compliance', icon: Shield, color: 'amber' }
   ];
+
+  const handleExport = async () => {
+    try {
+      const response = await fetch('/data/fake_clinical_trial_patients.json');
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'patient_data.json';
+      a.click();
+      
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert('Failed to export data. Please check if the file exists.');
+    }
+  };
 
   const handleChatSend = async () => {
     if (!chatInput.trim()) return;
@@ -797,7 +729,9 @@ const ClinicalTrialDemoMain = () => {
                 <button className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white py-2 px-4 rounded-lg hover:from-cyan-400 hover:to-blue-500 transition-all duration-200">
                   Generate Report
                 </button>
-                <button className="w-full bg-gray-700 text-white py-2 px-4 rounded-lg hover:bg-gray-600 transition-all duration-200">
+                <button 
+                onClick = {handleExport}
+                className="w-full bg-gray-700 text-white py-2 px-4 rounded-lg hover:bg-gray-600 transition-all duration-200">
                   Export Data
                 </button>
                 <button 
