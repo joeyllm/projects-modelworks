@@ -6,7 +6,7 @@ import React, { useState, useEffect } from 'react';
  * @todo Replace with actual source of json data
  * @todo Have consistent URL for exported json file and json file for code
  */
-import patientData from './api/data/fake_clinical_trial_patients.json';
+import patientData from './api/data/fake_clinical_trial_patients.json'; 
 
 import { 
   BarChart3, 
