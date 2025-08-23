@@ -6,7 +6,7 @@ import React, { useState, useEffect } from 'react';
  * @todo Replace with actual source of json data
  * @todo Have consistent URL for exported json file and json file for code
  */
-import patientData from './api/data/fake_clinical_trial_patients.json'; 
+import patientData from './api/data/fake_clinical_trial_patients.json';
 
 import { 
   BarChart3, 
@@ -62,26 +62,51 @@ const ClinicalTrialDemoMain = () => {
     { id: 'Safety & Compliance', icon: Shield, color: 'amber' }
   ];
 
-  const handleExport = async () => {
+  const handleExport = async ({ url, filename, type = 'auto' }) => {
     try {
-      const response = await fetch('/data/fake_clinical_trial_patients.json');
+      // Show loading state
+      console.log('Downloading file...');
+      
+      const response = await fetch(url);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
+      // Get the blob directly from response
       const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
       
+      // Auto-detect filename if not provided
+      let finalFilename = filename;
+      if (!finalFilename) {
+        // Try to get filename from URL or Content-Disposition header
+        const contentDisposition = response.headers.get('content-disposition');
+        if (contentDisposition) {
+          const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+          if (filenameMatch) {
+            finalFilename = filenameMatch[1];
+          }
+        } else {
+          // Extract from URL
+          finalFilename = url.split('/').pop() || 'download';
+        }
+      }
+      
+      // Create download link
+      const downloadUrl = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url;
-      a.download = 'patient_data.json';
+      a.href = downloadUrl;
+      a.download = finalFilename;
       a.click();
       
-      URL.revokeObjectURL(url);
+      // Clean up
+      URL.revokeObjectURL(downloadUrl);
+      
+      console.log('Download completed!');
+      
     } catch (error) {
-      console.error('Export failed:', error);
-      alert('Failed to export data. Please check if the file exists.');
+      console.error('Download failed:', error);
+      alert(`Failed to download file: ${error.message}`);
     }
   };
 
@@ -726,11 +751,17 @@ const ClinicalTrialDemoMain = () => {
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-600/50 rounded-lg p-6">
               <h3 className="text-lg font-semibold text-white mb-4">Quick Actions</h3>
               <div className="space-y-3">
-                <button className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white py-2 px-4 rounded-lg hover:from-cyan-400 hover:to-blue-500 transition-all duration-200">
+                <button onClick={() => handleExport({
+                  url: '/data/clinical_trials_demo_research.pdf',
+                  filename: 'report.pdf'
+                })}
+                className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white py-2 px-4 rounded-lg hover:from-cyan-400 hover:to-blue-500 transition-all duration-200">
                   Generate Report
                 </button>
-                <button 
-                onClick = {handleExport}
+                <button onClick={() => handleExport({
+                  url: '/data/fake_clinical_trial_patients.json',
+                  filename: 'patients.json'
+                })}
                 className="w-full bg-gray-700 text-white py-2 px-4 rounded-lg hover:bg-gray-600 transition-all duration-200">
                   Export Data
                 </button>
