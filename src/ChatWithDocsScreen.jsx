@@ -205,15 +205,16 @@ Episode summary for ${currentConv?.patientName || 'patient'} (${currentConv?.pat
 
   const sendMessage = async () => {
     if (!newMessage.trim()) return;
-
-    setAiError('');
-    setIsSending(true);
-
-    const newMsg = {
+    
+    const currentInput = newMessage;
+    const currentConv = conversations.find(c => c.id === activeConversation);
+    
+    // ✅ This part works - adds user message immediately
+    const userMessage = {
       id: Date.now(),
       sender: 'Clinical Coder',
       senderType: 'coder',
-      message: newMessage,
+      message: currentInput,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       status: 'delivered',
       attachments: []
@@ -221,55 +222,89 @@ Episode summary for ${currentConv?.patientName || 'patient'} (${currentConv?.pat
 
     setMessagesByConv(prev => ({
       ...prev,
-      [activeConversation]: [
-        ...(prev[activeConversation] || []),
-        newMsg
-      ]
+      [activeConversation]: [...(prev[activeConversation] || []), userMessage]
     }));
-    setNewMessage('');
-    setShowTemplates(false);
+    
+    setNewMessage(''); // ✅ Clears input
+    setIsSending(true); // ✅ Shows typing indicator
 
     try {
-      const conversationForApi = [
-        ...(messagesByConv[activeConversation] || []),
-        newMsg
-      ];
+      // ✅ Makes API call
       const response = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
-          conversation: conversationForApi,
-          docsContext
-        })
+          model: 'gpt-4',
+          messages: [
+            {
+              role: 'system',
+              content: `You are a clinician named ` + currentConv.clinician + " who specialises in " + currentConv.specialty + "."
+            },
+            {
+              role: 'system',
+              content: `You are currently treating ` + currentConv.patientName + " and you will be asked questions about them.  Answer and approach the topic in a professional manner like an average clinician."
+            },
+            {
+              role: 'system',
+              content: `You should act as if you are indeed ` + currentConv.clinician + ` and confidently answer questions relating to ` + activeConversation.specialty + "."
+            },
+            {
+              role: 'user',
+              content: currentInput
+            }
+          ],
+          max_tokens: 300,
+          temperature: 0.7,
+        }),
       });
 
-      const data = await response.json();
       if (!response.ok) {
-        throw new Error(data?.error || 'Request failed');
+        throw new Error(`API error: ${response.status}`);
       }
 
-      const aiText = data?.text || 'Sorry, I could not generate a response.';
-
-      const aiMsg = {
+      // ❌ MISSING: You never process the response!
+      // You need to add this:
+      
+      const data = await response.json();
+      
+      const aiResponse = {
         id: Date.now() + 1,
-        sender: 'AI Assistant',
+        sender: currentConv?.clinician || 'Doctor',
         senderType: 'clinician',
-        message: aiText,
+        message: data.choices[0].message.content, // Extract AI response
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         status: 'delivered',
         attachments: []
       };
+      
+      // Add AI response to messages
       setMessagesByConv(prev => ({
         ...prev,
-        [activeConversation]: [
-          ...(prev[activeConversation] || []),
-          aiMsg
-        ]
+        [activeConversation]: [...(prev[activeConversation] || []), aiResponse]
       }));
-    } catch (err) {
-      setAiError('AI reply failed. Please try again.');
+      
+    } catch (error) {
+      console.error('Chat Error:', error);
+      
+      // ❌ MISSING: Error handling - add error message to chat
+      const errorResponse = {
+        id: Date.now() + 2,
+        sender: 'System',
+        senderType: 'clinician',
+        message: 'Sorry, I encountered an error. Please try again.',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        status: 'error',
+        attachments: []
+      };
+      
+      setMessagesByConv(prev => ({
+        ...prev,
+        [activeConversation]: [...(prev[activeConversation] || []), errorResponse]
+      }));
     } finally {
-      setIsSending(false);
+      setIsSending(false); // ✅ Hides typing indicator
     }
   };
 
