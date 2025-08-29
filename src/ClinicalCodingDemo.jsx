@@ -141,12 +141,33 @@ const ClinicalCodingDemo = ({ onBackToMenu }) => {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ conversation, docsContext })
+        body: JSON.stringify({
+          model: 'gpt-4',
+          messages: [
+          {
+            role: 'system',
+            content: 'You are an AI assistant helping hospital clinical coders communicate with clinicians.'
+          },
+          {
+            role: 'system',
+            content: 'Be concise, professional, and reference clinical facts from the provided docs context when helpful.'
+          },
+          {
+            role: 'system',
+            content: 'Follow Australian Coding Standards where relevant. If uncertain, ask a specific follow-up question.'
+          },
+          {
+            role: 'user',
+            content: userText
+          }
+        ],
+        max_tokens: 300,
+        temperature: 0.3,})
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || 'AI error');
 
-      const aiText = data?.text || 'Sorry, I could not generate a response.';
+      const aiText = data?.choices?.[0]?.message?.content || 'Sorry, I could not generate a response.';
       setChatMessages(prev => [
         ...prev,
         { id: Date.now() + 1, role: 'assistant', text: aiText }
