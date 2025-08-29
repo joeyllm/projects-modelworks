@@ -1,64 +1,66 @@
+// server.js
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
-const { OpenAI } = require('openai');
+const path = require('path');
 
+// Load environment variables from the correct path
 dotenv.config({ path: require('path').join(__dirname, '.env') });
 
 const app = express();
-app.use(cors());
-app.use(express.json({ limit: '2mb' }));
+const PORT = process.env.PORT || 5001;
 
-const openaiApiKey = process.env.OPENAI_API_KEY;
-if (!openaiApiKey) {
-  console.warn('OPENAI_API_KEY is not set. Create server/.env with OPENAI_API_KEY=your_key');
+// Check if API key is loaded
+if (!process.env.OPENAI_API_KEY) {
+  console.error('❌ OPENAI_API_KEY is not set in environment variables');
+  console.log('Create a .env file in your server directory with:');
+  console.log('OPENAI_API_KEY=your_api_key_here');
+} else {
+  console.log('✅ OpenAI API key loaded');
 }
 
-const client = new OpenAI({ apiKey: openaiApiKey });
+// Middleware
+app.use(cors());
+app.use(express.json());
 
+// Chat endpoint - passes requests directly to OpenAI
 app.post('/api/chat', async (req, res) => {
   try {
-    if (!openaiApiKey) {
-      return res.status(500).json({ error: 'Server missing OpenAI API key' });
+    // Check if API key exists for this request
+    if (!process.env.OPENAI_API_KEY) {
+      return res.status(500).json({
+        error: 'OpenAI API key not configured on server'
+      });
     }
 
-    const { conversation, docsContext } = req.body || {};
+    const body = req.body;
 
-    const system = [
-      'You are an AI assistant helping hospital clinical coders communicate with clinicians.',
-      'Be concise, professional, and reference clinical facts from the provided docs context when helpful.',
-      'Follow Australian Coding Standards where relevant. If uncertain, ask a specific follow-up question.'
-    ].join(' ');
-
-    const convoText = Array.isArray(conversation)
-      ? conversation
-          .map(m => `${m.senderType === 'coder' ? 'Coder' : 'Clinician'}: ${m.message}`)
-          .join('\n')
-      : '';
-
-    const contextText = docsContext ? `\n\nRelevant documents/context:\n${docsContext}` : '';
-
-    const userPrompt = `Conversation so far:\n${convoText}${contextText}\n\nPlease draft the next message from the coder to the clinician, ensuring clarity and compliance.`;
-
-    const response = await client.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: system },
-        { role: 'user', content: userPrompt }
-      ],
-      temperature: 0.3,
-      max_tokens: 300
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify(body),
     });
 
-    const text = response.choices?.[0]?.message?.content?.trim() || '';
-    return res.json({ text });
-  } catch (err) {
-    console.error('OpenAI error:', err?.message || err);
-    return res.status(500).json({ error: 'Failed to generate response' });
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('OpenAI API Error Details:', errorData);
+      throw new Error(`OpenAI API error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
+    }
+
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    console.error('OpenAI API Error:', error.message);
+    res.status(500).json({
+      error: 'Failed to process chat request',
+      details: error.message
+    });
   }
 });
 
-const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => {
-  console.log(`Server listening on http://localhost:${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
