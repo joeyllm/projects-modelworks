@@ -11,7 +11,7 @@ app = FastAPI()
 @app.post("/")
 async def query_endpoint(query: Query):
     message = query.message
-    bot = AI.bot()
+    bot = AI.AI()
     bot_response = bot.call(message)
     return {
         "sql" : bot_response[0], 

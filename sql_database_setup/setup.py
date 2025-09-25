@@ -9,11 +9,11 @@ try:
     conn = sqlite3.connect(config["database"])
     cursor = conn.cursor()
 
-    with open("setup/hr_sample_create.sql", "r") as sql_file:
+    with open("sql_database_setup/hr_sample_create.sql", "r") as sql_file:
         script = sql_file.read()
     cursor.executescript(script)
 
-    with open("setup/hr_sample_fill_data.sql", "r") as sql_file:
+    with open("sql_database_setup/hr_sample_fill_data.sql", "r") as sql_file:
         script = sql_file.read()
     cursor.executescript(script)
 
