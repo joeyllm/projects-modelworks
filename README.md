@@ -4,10 +4,10 @@ This repository contains two AI applications developed by the ModelWorks team:
 
 ## 🌿 Branch Overview
 
-### `main` - RAG-Powered Document Q&A System
+### [`main`](https://github.com/joeyllm/projects-modelworks) - RAG-Powered Document Q&A System
 A full-stack application that enables users to upload PDF documents and ask questions about their content using Retrieval-Augmented Generation (RAG) with local LLM models.
 
-### `clinical-trials-chat-api` - Clinical Trial Analytics Dashboard
+### [`clinical-trials-chat-api`](https://github.com/joeyllm/projects-modelworks/tree/clinical-trials-chat-api) - Clinical Trial Analytics Dashboard
 A Next.js application for clinical trial data visualization and AI-powered analysis of patient data, biomarkers, and trial outcomes.
 
 ## 🚀 Features
@@ -154,7 +154,7 @@ docker-compose logs ollama
 
 ---
 
-## 🧬 Clinical Trials Branch (`clinical-trials-chat-api`)
+## 🧬 Clinical Trials Branch ([`clinical-trials-chat-api`](https://github.com/joeyllm/projects-modelworks/tree/clinical-trials-chat-api))
 
 ### Overview
 A sophisticated clinical trial analytics dashboard built with Next.js, featuring real-time patient data visualization, biomarker analysis, and AI-powered insights for the SCAI-001 immunotherapy study.
