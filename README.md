@@ -5,7 +5,7 @@
 **You can import the project by using either of the two following methods:**
 
 * Make your own Next.js app, and then copy and paste the files from this repository to the appropriate directories.
-  * Ensure that the `MainContainer.jsx` file will be in the `page.jsx` file! 
+  * Ensure that the `ClinicalTrialDemoMain.jsx` file will be in the `page.jsx` file! 
 * Pull the repository to your local device
   * There is a chance that the node_modules folder will be missing, so it might be best to try and get this folder elsewhere (probably by making your own app and then copying and pasting the folder to this one)
 
